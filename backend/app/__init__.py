@@ -22,10 +22,16 @@ def create_app():
     migrate.init_app(app, db)
     
     # Better for production
-    CORS(app, resources={r"/*": {"origins": [
-        "http://localhost:3000", 
-        "https://your-finquest-frontend.vercel.app"
-    ]}}, supports_credentials=True)
+    CORS(app, resources={r"/*": {
+        "origins": [
+            "http://localhost:3000",
+            "https://finquest-react-frontend.vercel.app",
+            "https://finquest-react-frontend-git-main-jordan-bogles-projects.vercel.app",
+            "https://finquest-react-frontend-eyr5btrtz-jordan-bogles-projects.vercel.app"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }}, supports_credentials=True)
     # 4. Import models within app context
     with app.app_context():
         from app.models.user import User, Role, completed_scenarios
