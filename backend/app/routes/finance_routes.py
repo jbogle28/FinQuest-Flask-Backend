@@ -405,7 +405,7 @@ def withdraw_fd():
 @jwt_required()
 def sell_bond(portfolio_id):
     user_id = get_jwt_identity()
-    bond_entry = UserPortfolio.query.filter_by(id=portfolio_id, user_id=user_id, asset_type='Bond').first_or_404()
+    bond_entry = UserPortfolio.query.filter_by(portfolio_id=portfolio_id, user_id=user_id, asset_type='Bond').first_or_404()
     
     # Logic to calculate liquidation value (e.g., face value + partial interest)
     liquidation_value = float(bond_entry.purchase_price) 
