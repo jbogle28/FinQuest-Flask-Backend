@@ -398,3 +398,22 @@ def withdraw_fd():
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Failed to process withdrawal.", "error": str(e)}), 500
+
+
+
+@finance_bp.route('/bonds/sell/<int:portfolio_id>', methods=['POST'])
+@jwt_required()
+def sell_bond(portfolio_id):
+    user_id = get_jwt_identity()
+    bond_entry = UserPortfolio.query.filter_by(id=portfolio_id, user_id=user_id, asset_type='Bond').first_or_404()
+    
+    # Logic to calculate liquidation value (e.g., face value + partial interest)
+    liquidation_value = float(bond_entry.purchase_price) 
+    
+    user = User.query.get(user_id)
+    user.coin_balance += Decimal(str(liquidation_value))
+    
+    db.session.delete(bond_entry)
+    db.session.commit()
+    
+    return jsonify({"msg": "Bond liquidated successfully", "new_balance": float(user.coin_balance)}), 200
