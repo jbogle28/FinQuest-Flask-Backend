@@ -171,12 +171,18 @@ def new_transaction(u_id, amt, act):
 @jwt_required()
 def get_portfolio_details():
     user_id = get_jwt_identity()
+    
+    # 1. Get Stocks and Bonds from UserPortfolio
     holdings = UserPortfolio.query.filter_by(user_id=user_id).all()
+    
+    # 2. Get Fixed Deposits from the dedicated table
+    active_fds = FixedDeposit.query.filter_by(user_id=user_id).all()
     
     portfolio_items = []
     total_invested = 0
     current_market_value = 0
 
+    # Process Stocks & Bonds
     for h in holdings:
         if h.asset_type == 'Stock':
             s = AvailableStock.query.get(h.asset_id)
@@ -196,8 +202,8 @@ def get_portfolio_details():
                 "qty": float(h.quantity),
                 "avg_price": float(h.purchase_price),
                 "current_price": float(s.current_price),
-                "profit_loss": current_val - initial_cost,
-                "pl_percentage": ((current_val - initial_cost) / initial_cost * 100) if initial_cost > 0 else 0
+                "profit_loss": round(current_val - initial_cost, 2),
+                "pl_percentage": round(((current_val - initial_cost) / initial_cost * 100), 2) if initial_cost > 0 else 0
             })
         
         elif h.asset_type == 'Bond':
@@ -218,6 +224,24 @@ def get_portfolio_details():
                 "risk": b.risk_rating
             })
 
+    # 3. Process Fixed Deposits
+    for fd in active_fds:
+        principal = float(fd.principal)
+        # Assuming FD current value is just principal until maturity for simplicity, 
+        # or you can calculate accrued interest here.
+        total_invested += principal
+        current_market_value += principal 
+        
+        portfolio_items.append({
+            "id": fd.fd_id,
+            "type": "Fixed Deposit",
+            "name": fd.institution.institution_name,
+            "principal": principal,
+            "interest_rate": f"{float(fd.interest_rate * 100)}%",
+            "end_time": fd.end_time.isoformat(),
+            "status": "Active" if datetime.utcnow() < fd.end_time else "Matured"
+        })
+
     return jsonify({
         "items": portfolio_items,
         "summary": {
@@ -226,7 +250,6 @@ def get_portfolio_details():
             "net_position": round(current_market_value - total_invested, 2)
         }
     }), 200
-
 
 @finance_bp.route('/stocks/tick', methods=['POST'])
 def simulate_market_movements(stock):
